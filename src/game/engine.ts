@@ -24,8 +24,10 @@ interface GameState {
 }
 
 interface Controls {
-  moveX: number; // -1 to 1
-  moveY: number; // -1 to 1
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
   fire: boolean;
 }
 
