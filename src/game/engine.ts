@@ -218,7 +218,6 @@ export class GameEngine {
       b.y += b.vy * dt;
 
       // Speed increase over time
-      const accel = 1 + s.elapsed * 0.005;
       b.vx = Math.sign(b.vx) * Math.abs(b.vx) * (1 + 0.0005 * dt);
       b.vy = Math.sign(b.vy) * Math.abs(b.vy) * (1 + 0.0005 * dt);
 
