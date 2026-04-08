@@ -171,17 +171,26 @@ export class GameEngine {
       if (!tank.alive) continue;
       const ctrl = this.controls[i];
 
-      if (ctrl.left) tank.angle -= rotSpeed;
-      if (ctrl.right) tank.angle += rotSpeed;
+      // Joystick-based movement
+      const inputMag = Math.sqrt(ctrl.moveX * ctrl.moveX + ctrl.moveY * ctrl.moveY);
+      if (inputMag > 0.15) {
+        // Rotate tank toward joystick direction
+        const targetAngle = Math.atan2(ctrl.moveY, ctrl.moveX);
+        let angleDiff = targetAngle - tank.angle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        tank.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), rotSpeed * 2);
 
-      // Auto-move forward
-      const nx = tank.x + Math.cos(tank.angle) * moveSpeed;
-      const ny = tank.y + Math.sin(tank.angle) * moveSpeed;
+        // Move in joystick direction
+        const speed = moveSpeed * Math.min(inputMag, 1);
+        const nx = tank.x + Math.cos(tank.angle) * speed;
+        const ny = tank.y + Math.sin(tank.angle) * speed;
 
-      const inset = s.arenaInset;
-      const bounded = this.clampTank(nx, ny, tank, inset);
-      tank.x = bounded.x;
-      tank.y = bounded.y;
+        const inset = s.arenaInset;
+        const bounded = this.clampTank(nx, ny, tank, inset);
+        tank.x = bounded.x;
+        tank.y = bounded.y;
+      }
 
       // Fire
       if (tank.cooldown > 0) tank.cooldown -= dt;
