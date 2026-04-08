@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { GameEngine } from '../game/engine';
 import { GameMode } from '../game/types';
+import { VirtualJoystick } from '../components/VirtualJoystick';
 
 interface Props {
   mode: GameMode;
@@ -22,75 +23,54 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
     engineRef.current = engine;
     engine.start();
 
-    const handleResize = () => {
-      if (engineRef.current) {
-        // re-init engine on resize handled internally
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
     return () => {
       engine.stop();
-      window.removeEventListener('resize', handleResize);
     };
   }, [mode, soundOn, vibrationOn, onRoundEnd]);
 
-  const setControl = useCallback((player: 0 | 1, key: 'left' | 'right' | 'fire', value: boolean) => {
+  const handleP1Move = useCallback((dx: number, dy: number) => {
     const e = engineRef.current;
-    if (e) e.controls[player][key] = value;
+    if (e) { e.controls[0].moveX = dx; e.controls[0].moveY = dy; }
   }, []);
 
-  const handleTouch = useCallback((e: React.TouchEvent | React.MouseEvent, player: 0 | 1, key: 'left' | 'right' | 'fire', value: boolean) => {
-    e.preventDefault();
-    setControl(player, key, value);
-  }, [setControl]);
+  const handleP2Move = useCallback((dx: number, dy: number) => {
+    const e = engineRef.current;
+    if (e) { e.controls[1].moveX = dx; e.controls[1].moveY = dy; }
+  }, []);
 
-  const btnStyle = (color: string) => ({
-    background: color,
+  const handleFire = useCallback((e: React.TouchEvent | React.MouseEvent, player: 0 | 1, value: boolean) => {
+    e.preventDefault();
+    const eng = engineRef.current;
+    if (eng) eng.controls[player].fire = value;
+  }, []);
+
+  const fireBtnStyle = {
+    background: '#8b2500',
     border: '2px solid rgba(255,255,255,0.15)',
     color: '#e8dcc8',
     fontFamily: "'Courier New', monospace",
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: 'bold' as const,
     textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
     boxShadow: '0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)',
     touchAction: 'none' as const,
     userSelect: 'none' as const,
     WebkitUserSelect: 'none' as const,
-  });
+  };
 
   return (
     <div className="w-full h-screen flex" style={{ background: '#1a1a14', touchAction: 'none' }}>
       {/* P1 Controls */}
-      <div className="flex flex-col justify-center items-center gap-2 p-2" style={{ width: '15%', minWidth: 56 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#4a6741' }}>P1</div>
+      <div className="flex flex-col justify-center items-center gap-2 p-2" style={{ width: '18%', minWidth: 80 }}>
+        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#4a6741', fontFamily: "'Courier New', monospace" }}>P1</div>
+        <VirtualJoystick size={90} onMove={handleP1Move} color="#4a6741" />
         <button
-          className="w-full flex-1 max-h-16 rounded-sm active:opacity-70"
-          style={btnStyle('#3a5431')}
-          onTouchStart={(e) => handleTouch(e, 0, 'left', true)}
-          onTouchEnd={(e) => handleTouch(e, 0, 'left', false)}
-          onMouseDown={(e) => handleTouch(e, 0, 'left', true)}
-          onMouseUp={(e) => handleTouch(e, 0, 'left', false)}
-        >
-          ↺
-        </button>
-        <button
-          className="w-full flex-1 max-h-16 rounded-sm active:opacity-70"
-          style={btnStyle('#3a5431')}
-          onTouchStart={(e) => handleTouch(e, 0, 'right', true)}
-          onTouchEnd={(e) => handleTouch(e, 0, 'right', false)}
-          onMouseDown={(e) => handleTouch(e, 0, 'right', true)}
-          onMouseUp={(e) => handleTouch(e, 0, 'right', false)}
-        >
-          ↻
-        </button>
-        <button
-          className="w-full flex-1 max-h-20 rounded-sm active:opacity-70"
-          style={{ ...btnStyle('#8b2500'), fontSize: '13px' }}
-          onTouchStart={(e) => handleTouch(e, 0, 'fire', true)}
-          onTouchEnd={(e) => handleTouch(e, 0, 'fire', false)}
-          onMouseDown={(e) => handleTouch(e, 0, 'fire', true)}
-          onMouseUp={(e) => handleTouch(e, 0, 'fire', false)}
+          className="w-16 h-16 rounded-full active:opacity-70 mt-1"
+          style={fireBtnStyle}
+          onTouchStart={(e) => handleFire(e, 0, true)}
+          onTouchEnd={(e) => handleFire(e, 0, false)}
+          onMouseDown={(e) => handleFire(e, 0, true)}
+          onMouseUp={(e) => handleFire(e, 0, false)}
         >
           FIRE
         </button>
@@ -104,35 +84,16 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
       />
 
       {/* P2 Controls */}
-      <div className="flex flex-col justify-center items-center gap-2 p-2" style={{ width: '15%', minWidth: 56 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#8b7355' }}>P2</div>
+      <div className="flex flex-col justify-center items-center gap-2 p-2" style={{ width: '18%', minWidth: 80 }}>
+        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
+        <VirtualJoystick size={90} onMove={handleP2Move} color="#8b7355" />
         <button
-          className="w-full flex-1 max-h-16 rounded-sm active:opacity-70"
-          style={btnStyle('#6b5335')}
-          onTouchStart={(e) => handleTouch(e, 1, 'left', true)}
-          onTouchEnd={(e) => handleTouch(e, 1, 'left', false)}
-          onMouseDown={(e) => handleTouch(e, 1, 'left', true)}
-          onMouseUp={(e) => handleTouch(e, 1, 'left', false)}
-        >
-          ↺
-        </button>
-        <button
-          className="w-full flex-1 max-h-16 rounded-sm active:opacity-70"
-          style={btnStyle('#6b5335')}
-          onTouchStart={(e) => handleTouch(e, 1, 'right', true)}
-          onTouchEnd={(e) => handleTouch(e, 1, 'right', false)}
-          onMouseDown={(e) => handleTouch(e, 1, 'right', true)}
-          onMouseUp={(e) => handleTouch(e, 1, 'right', false)}
-        >
-          ↻
-        </button>
-        <button
-          className="w-full flex-1 max-h-20 rounded-sm active:opacity-70"
-          style={{ ...btnStyle('#8b2500'), fontSize: '13px' }}
-          onTouchStart={(e) => handleTouch(e, 1, 'fire', true)}
-          onTouchEnd={(e) => handleTouch(e, 1, 'fire', false)}
-          onMouseDown={(e) => handleTouch(e, 1, 'fire', true)}
-          onMouseUp={(e) => handleTouch(e, 1, 'fire', false)}
+          className="w-16 h-16 rounded-full active:opacity-70 mt-1"
+          style={fireBtnStyle}
+          onTouchStart={(e) => handleFire(e, 1, true)}
+          onTouchEnd={(e) => handleFire(e, 1, false)}
+          onMouseDown={(e) => handleFire(e, 1, true)}
+          onMouseUp={(e) => handleFire(e, 1, false)}
         >
           FIRE
         </button>
