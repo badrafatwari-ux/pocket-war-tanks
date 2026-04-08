@@ -1,0 +1,17 @@
+{
+  "name": "Retro Tank Duel",
+  "short_name": "Tank Duel",
+  "description": "2-player local multiplayer tank battle game",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1a1a14",
+  "theme_color": "#4a6741",
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
