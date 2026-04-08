@@ -24,8 +24,10 @@ interface GameState {
 }
 
 interface Controls {
-  moveX: number; // -1 to 1
-  moveY: number; // -1 to 1
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
   fire: boolean;
 }
 
@@ -44,8 +46,8 @@ export class GameEngine {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
     this.controls = [
-      { moveX: 0, moveY: 0, fire: false },
-      { moveX: 0, moveY: 0, fire: false },
+      { up: false, down: false, left: false, right: false, fire: false },
+      { up: false, down: false, left: false, right: false, fire: false },
     ];
     this.state = this.createState(mode, soundOn, vibrationOn);
   }
@@ -171,20 +173,24 @@ export class GameEngine {
       if (!tank.alive) continue;
       const ctrl = this.controls[i];
 
-      // Joystick-based movement
-      const inputMag = Math.sqrt(ctrl.moveX * ctrl.moveX + ctrl.moveY * ctrl.moveY);
-      if (inputMag > 0.15) {
-        // Rotate tank toward joystick direction
-        const targetAngle = Math.atan2(ctrl.moveY, ctrl.moveX);
+      // D-pad movement
+      let mx = 0, my = 0;
+      if (ctrl.left) mx -= 1;
+      if (ctrl.right) mx += 1;
+      if (ctrl.up) my -= 1;
+      if (ctrl.down) my += 1;
+
+      const inputMag = Math.sqrt(mx * mx + my * my);
+      if (inputMag > 0) {
+        // Rotate toward direction
+        const targetAngle = Math.atan2(my, mx);
         let angleDiff = targetAngle - tank.angle;
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        tank.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), rotSpeed * 2);
+        tank.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), rotSpeed * 3);
 
-        // Move in joystick direction
-        const speed = moveSpeed * Math.min(inputMag, 1);
-        const nx = tank.x + Math.cos(tank.angle) * speed;
-        const ny = tank.y + Math.sin(tank.angle) * speed;
+        const nx = tank.x + Math.cos(tank.angle) * moveSpeed;
+        const ny = tank.y + Math.sin(tank.angle) * moveSpeed;
 
         const inset = s.arenaInset;
         const bounded = this.clampTank(nx, ny, tank, inset);
