@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Screen, GameMode, GameData, DEFAULT_GAME_DATA } from '../game/types';
 import { loadGameData, saveGameData } from '../game/storage';
 import { playVictory } from '../game/sounds';
