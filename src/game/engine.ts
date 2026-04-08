@@ -46,8 +46,8 @@ export class GameEngine {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
     this.controls = [
-      { moveX: 0, moveY: 0, fire: false },
-      { moveX: 0, moveY: 0, fire: false },
+      { up: false, down: false, left: false, right: false, fire: false },
+      { up: false, down: false, left: false, right: false, fire: false },
     ];
     this.state = this.createState(mode, soundOn, vibrationOn);
   }
