@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { GameEngine } from '../game/engine';
 import { GameMode } from '../game/types';
-import { VirtualJoystick } from '../components/VirtualJoystick';
 
 interface Props {
   mode: GameMode;
@@ -10,6 +9,8 @@ interface Props {
   onRoundEnd: (winner: number) => void;
 }
 
+type Dir = 'up' | 'down' | 'left' | 'right' | 'fire';
+
 export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoundEnd }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
@@ -17,86 +18,83 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const engine = new GameEngine(canvas, mode, soundOn, vibrationOn);
     engine.onRoundEnd = onRoundEnd;
     engineRef.current = engine;
     engine.start();
-
-    return () => {
-      engine.stop();
-    };
+    return () => { engine.stop(); };
   }, [mode, soundOn, vibrationOn, onRoundEnd]);
 
-  const handleP1Move = useCallback((dx: number, dy: number) => {
+  const set = useCallback((player: 0 | 1, key: Dir, val: boolean) => {
     const e = engineRef.current;
-    if (e) { e.controls[0].moveX = dx; e.controls[0].moveY = dy; }
+    if (e) e.controls[player][key] = val;
   }, []);
 
-  const handleP2Move = useCallback((dx: number, dy: number) => {
-    const e = engineRef.current;
-    if (e) { e.controls[1].moveX = dx; e.controls[1].moveY = dy; }
-  }, []);
+  const bind = (player: 0 | 1, key: Dir) => ({
+    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); set(player, key, true); },
+    onTouchEnd: (e: React.TouchEvent) => { e.preventDefault(); set(player, key, false); },
+    onTouchCancel: (e: React.TouchEvent) => { e.preventDefault(); set(player, key, false); },
+    onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); set(player, key, true); },
+    onMouseUp: (e: React.MouseEvent) => { e.preventDefault(); set(player, key, false); },
+    onMouseLeave: (e: React.MouseEvent) => { e.preventDefault(); set(player, key, false); },
+  });
 
-  const handleFire = useCallback((e: React.TouchEvent | React.MouseEvent, player: 0 | 1, value: boolean) => {
-    e.preventDefault();
-    const eng = engineRef.current;
-    if (eng) eng.controls[player].fire = value;
-  }, []);
-
-  const fireBtnStyle = {
-    background: '#8b2500',
-    border: '2px solid rgba(255,255,255,0.15)',
+  const dpadBtn = (color: string) => ({
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    background: color,
+    border: '2px solid rgba(255,255,255,0.12)',
     color: '#e8dcc8',
     fontFamily: "'Courier New', monospace",
-    fontSize: '13px',
+    fontSize: '16px',
     fontWeight: 'bold' as const,
     textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
-    boxShadow: '0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
     touchAction: 'none' as const,
     userSelect: 'none' as const,
     WebkitUserSelect: 'none' as const,
-  };
+    borderRadius: 4,
+    width: 44,
+    height: 44,
+  });
 
-  return (
-    <div className="w-full h-screen flex" style={{ background: '#1a1a14', touchAction: 'none' }}>
-      {/* P1 Controls */}
-      <div className="flex flex-col justify-center items-center gap-2 p-2" style={{ width: '18%', minWidth: 80 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#4a6741', fontFamily: "'Courier New', monospace" }}>P1</div>
-        <VirtualJoystick size={90} onMove={handleP1Move} color="#4a6741" />
+  const DPad = ({ player, color }: { player: 0 | 1; color: string }) => (
+    <div className="flex flex-col items-center gap-1">
+      {/* Up */}
+      <button style={dpadBtn(color)} {...bind(player, 'up')} className="active:opacity-60">▲</button>
+      {/* Left / Fire / Right */}
+      <div className="flex items-center gap-1">
+        <button style={dpadBtn(color)} {...bind(player, 'left')} className="active:opacity-60">◄</button>
         <button
-          className="w-16 h-16 rounded-full active:opacity-70 mt-1"
-          style={fireBtnStyle}
-          onTouchStart={(e) => handleFire(e, 0, true)}
-          onTouchEnd={(e) => handleFire(e, 0, false)}
-          onMouseDown={(e) => handleFire(e, 0, true)}
-          onMouseUp={(e) => handleFire(e, 0, false)}
+          style={{ ...dpadBtn('#8b2500'), width: 48, height: 48, fontSize: '11px', letterSpacing: '0.05em' }}
+          {...bind(player, 'fire')}
+          className="active:opacity-60 rounded-full"
         >
           FIRE
         </button>
+        <button style={dpadBtn(color)} {...bind(player, 'right')} className="active:opacity-60">►</button>
+      </div>
+      {/* Down */}
+      <button style={dpadBtn(color)} {...bind(player, 'down')} className="active:opacity-60">▼</button>
+    </div>
+  );
+
+  return (
+    <div className="w-full h-screen flex items-center" style={{ background: '#1a1a14', touchAction: 'none' }}>
+      {/* P1 Controls */}
+      <div className="flex flex-col items-center justify-center p-2" style={{ width: '20%', minWidth: 100 }}>
+        <div className="text-[10px] font-bold tracking-widest mb-2" style={{ color: '#4a6741', fontFamily: "'Courier New', monospace" }}>P1</div>
+        <DPad player={0} color="#3a5431" />
       </div>
 
       {/* Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="flex-1 block"
-        style={{ touchAction: 'none' }}
-      />
+      <canvas ref={canvasRef} className="flex-1 block h-full" style={{ touchAction: 'none' }} />
 
       {/* P2 Controls */}
-      <div className="flex flex-col justify-center items-center gap-2 p-2" style={{ width: '18%', minWidth: 80 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
-        <VirtualJoystick size={90} onMove={handleP2Move} color="#8b7355" />
-        <button
-          className="w-16 h-16 rounded-full active:opacity-70 mt-1"
-          style={fireBtnStyle}
-          onTouchStart={(e) => handleFire(e, 1, true)}
-          onTouchEnd={(e) => handleFire(e, 1, false)}
-          onMouseDown={(e) => handleFire(e, 1, true)}
-          onMouseUp={(e) => handleFire(e, 1, false)}
-        >
-          FIRE
-        </button>
+      <div className="flex flex-col items-center justify-center p-2" style={{ width: '20%', minWidth: 100 }}>
+        <div className="text-[10px] font-bold tracking-widest mb-2" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
+        <DPad player={1} color="#6b5335" />
       </div>
     </div>
   );
