@@ -2,12 +2,13 @@ import React from 'react';
 
 interface Props {
   onPlay: () => void;
+  onPlayAI: () => void;
   onModes: () => void;
   onStats: () => void;
   onSettings: () => void;
 }
 
-export const HomeScreen: React.FC<Props> = ({ onPlay, onModes, onStats, onSettings }) => {
+export const HomeScreen: React.FC<Props> = ({ onPlay, onPlayAI, onModes, onStats, onSettings }) => {
   return (
     <div className="screen-container relative overflow-hidden">
       {/* Background effects */}
@@ -71,7 +72,10 @@ export const HomeScreen: React.FC<Props> = ({ onPlay, onModes, onStats, onSettin
 
         {/* Buttons */}
         <button onClick={onPlay} className="btn-military text-lg w-56 animate-pulse-glow">
-          ▶ PLAY
+          ▶ 2P LOCAL
+        </button>
+        <button onClick={onPlayAI} className="btn-military text-lg w-56">
+          🤖 VS COMPUTER
         </button>
         <button onClick={onModes} className="btn-military-secondary w-56">
           🎮 GAME MODES
