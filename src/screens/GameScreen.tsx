@@ -55,8 +55,8 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
     userSelect: 'none' as const,
     WebkitUserSelect: 'none' as const,
     borderRadius: 4,
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
   });
 
   const DPad = ({ player, color }: { player: 0 | 1; color: string }) => (
