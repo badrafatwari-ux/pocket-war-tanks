@@ -67,7 +67,7 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
       <div className="flex items-center gap-1">
         <button style={dpadBtn(color)} {...bind(player, 'left')} className="active:opacity-60">◄</button>
         <button
-          style={{ ...dpadBtn('#8b2500'), width: 48, height: 48, fontSize: '11px', letterSpacing: '0.05em' }}
+          style={{ ...dpadBtn('#8b2500'), width: 44, height: 44, fontSize: '10px', letterSpacing: '0.05em' }}
           {...bind(player, 'fire')}
           className="active:opacity-60 rounded-full"
         >
