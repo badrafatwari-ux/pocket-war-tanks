@@ -39,12 +39,17 @@ export class GameEngine {
   animId: number | null = null;
   onRoundEnd: ((winner: number) => void) | null = null;
   lastTime = 0;
+  vsAI = false;
   private cw = 0;
   private ch = 0;
+  private aiTimer = 0;
+  private aiTargetAngle = 0;
+  private aiFireCooldown = 0;
 
-  constructor(canvas: HTMLCanvasElement, mode: GameMode, soundOn: boolean, vibrationOn: boolean) {
+  constructor(canvas: HTMLCanvasElement, mode: GameMode, soundOn: boolean, vibrationOn: boolean, vsAI = false) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
+    this.vsAI = vsAI;
     this.controls = [
       { up: false, down: false, left: false, right: false, fire: false },
       { up: false, down: false, left: false, right: false, fire: false },
@@ -96,20 +101,16 @@ export class GameEngine {
     const cx = cw / 2;
     const cy = ch / 2;
 
-    // Center cross
     obs.push({ x: cx - blockSize, y: cy - blockSize * 2, w: blockSize * 2, h: blockSize * 4, type: 'steel' });
 
-    // Random bricks
     const count = mode === 'chaos' ? 12 : 8;
     for (let i = 0; i < count; i++) {
       const ox = 80 + Math.random() * (cw - 160);
       const oy = 40 + Math.random() * (ch - 80);
-      // Don't place too close to spawn points
       if (Math.abs(ox - 70) < 50 && Math.abs(oy - cy) < 50) continue;
       if (Math.abs(ox - (cw - 70)) < 50 && Math.abs(oy - cy) < 50) continue;
-      // Don't overlap center
       if (Math.abs(ox - cx) < blockSize * 3 && Math.abs(oy - cy) < blockSize * 3) continue;
-      
+
       const isSteel = Math.random() < 0.3;
       obs.push({
         x: ox, y: oy,
@@ -137,21 +138,68 @@ export class GameEngine {
 
   private loop = () => {
     const now = performance.now();
-    const dt = Math.min((now - this.lastTime) / 16.67, 3); // normalize to ~60fps
+    const dt = Math.min((now - this.lastTime) / 16.67, 3);
     this.lastTime = now;
 
     if (this.state.roundWinner === null) {
+      if (this.vsAI) this.updateAI(dt);
       this.update(dt);
     }
     this.render();
     this.animId = requestAnimationFrame(this.loop);
   };
 
+  private updateAI(_dt: number) {
+    const s = this.state;
+    const ai = s.tanks[1];
+    const player = s.tanks[0];
+    if (!ai.alive || !player.alive) return;
+
+    const ctrl = this.controls[1];
+    this.aiTimer -= _dt;
+    this.aiFireCooldown -= _dt;
+
+    if (this.aiTimer <= 0) {
+      this.aiTimer = 20 + Math.random() * 20;
+      const dx = player.x - ai.x;
+      const dy = player.y - ai.y;
+      this.aiTargetAngle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.4;
+    }
+
+    const angleDiff = this.aiTargetAngle - ai.angle;
+    const normDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+    ctrl.up = false; ctrl.down = false; ctrl.left = false; ctrl.right = false; ctrl.fire = false;
+
+    const targetDx = Math.cos(this.aiTargetAngle);
+    const targetDy = Math.sin(this.aiTargetAngle);
+    if (targetDx > 0.3) ctrl.right = true;
+    else if (targetDx < -0.3) ctrl.left = true;
+    if (targetDy > 0.3) ctrl.down = true;
+    else if (targetDy < -0.3) ctrl.up = true;
+
+    if (Math.abs(normDiff) < 0.5 && this.aiFireCooldown <= 0) {
+      ctrl.fire = true;
+      this.aiFireCooldown = 25 + Math.random() * 20;
+    }
+
+    for (const b of s.bullets) {
+      if (b.owner === 1) continue;
+      const bDist = Math.hypot(b.x - ai.x, b.y - ai.y);
+      if (bDist < 80) {
+        const perpX = -b.vy;
+        const perpY = b.vx;
+        if (perpX > 0) ctrl.right = true; else ctrl.left = true;
+        if (perpY > 0) ctrl.down = true; else ctrl.up = true;
+        break;
+      }
+    }
+  }
+
   private update(dt: number) {
     const s = this.state;
     s.elapsed += dt / 60;
 
-    // Sudden death
     if (s.elapsed >= SUDDEN_DEATH_TIME && !s.suddenDeath) {
       s.suddenDeath = true;
     }
@@ -159,7 +207,6 @@ export class GameEngine {
     const speedMult = s.suddenDeath ? 1.5 : 1;
     const bulletSpeedMult = s.mode === 'chaos' ? 1.4 : 1;
 
-    // Shrink arena
     if (s.suddenDeath) {
       s.arenaInset = Math.min(s.arenaInset + 0.15 * dt, Math.min(this.cw, this.ch) * 0.3);
     }
@@ -167,13 +214,11 @@ export class GameEngine {
     const rotSpeed = 0.05 * dt;
     const moveSpeed = TANK_SPEED * speedMult * dt;
 
-    // Update tanks
     for (let i = 0; i < 2; i++) {
       const tank = s.tanks[i];
       if (!tank.alive) continue;
       const ctrl = this.controls[i];
 
-      // D-pad movement
       let mx = 0, my = 0;
       if (ctrl.left) mx -= 1;
       if (ctrl.right) mx += 1;
@@ -182,12 +227,11 @@ export class GameEngine {
 
       const inputMag = Math.sqrt(mx * mx + my * my);
       if (inputMag > 0) {
-        // Rotate toward direction
         const targetAngle = Math.atan2(my, mx);
-        let angleDiff = targetAngle - tank.angle;
-        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        tank.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), rotSpeed * 3);
+        let ad = targetAngle - tank.angle;
+        while (ad > Math.PI) ad -= Math.PI * 2;
+        while (ad < -Math.PI) ad += Math.PI * 2;
+        tank.angle += Math.sign(ad) * Math.min(Math.abs(ad), rotSpeed * 3);
 
         const nx = tank.x + Math.cos(tank.angle) * moveSpeed;
         const ny = tank.y + Math.sin(tank.angle) * moveSpeed;
@@ -198,7 +242,6 @@ export class GameEngine {
         tank.y = bounded.y;
       }
 
-      // Fire
       if (tank.cooldown > 0) tank.cooldown -= dt;
       if (ctrl.fire && tank.cooldown <= 0) {
         const bx = tank.x + Math.cos(tank.angle) * (TANK_W / 2 + 5);
@@ -216,14 +259,12 @@ export class GameEngine {
       }
     }
 
-    // Update bullets
     const inset = s.arenaInset;
     for (let bi = s.bullets.length - 1; bi >= 0; bi--) {
       const b = s.bullets[bi];
       b.x += b.vx * dt;
       b.y += b.vy * dt;
 
-      // Speed increase over time
       b.vx = Math.sign(b.vx) * Math.abs(b.vx) * (1 + 0.0005 * dt);
       b.vy = Math.sign(b.vy) * Math.abs(b.vy) * (1 + 0.0005 * dt);
 
@@ -240,22 +281,6 @@ export class GameEngine {
         bounced = true;
       }
 
-      // Obstacle bounce
-      for (const obs of s.obstacles) {
-        if (b.x > obs.x && b.x < obs.x + obs.w && b.y > obs.y && b.y < obs.y + obs.h) {
-          const fromLeft = b.x - obs.x;
-          const fromRight = obs.x + obs.w - b.x;
-          const fromTop = b.y - obs.y;
-          const fromBottom = obs.y + obs.h - b.y;
-          const minH = Math.min(fromLeft, fromRight);
-          const minV = Math.min(fromTop, fromBottom);
-          if (minH < minV) b.vx = -b.vx;
-          else b.vy = -b.vy;
-          bounced = true;
-          break;
-        }
-      }
-
       if (bounced) {
         b.bounces++;
         if (s.soundOn) playRicochet();
@@ -266,7 +291,22 @@ export class GameEngine {
         }
       }
 
-      // Hit detection
+      // Obstacle collision — bullet destroyed on hit (no bounce)
+      let hitObstacle = false;
+      for (const obs of s.obstacles) {
+        if (b.x > obs.x && b.x < obs.x + obs.w && b.y > obs.y && b.y < obs.y + obs.h) {
+          hitObstacle = true;
+          this.spawnParticles(b.x, b.y, '#ffaa33', 4);
+          if (s.soundOn) playRicochet();
+          break;
+        }
+      }
+      if (hitObstacle) {
+        s.bullets.splice(bi, 1);
+        continue;
+      }
+
+      // Tank hit detection
       for (let ti = 0; ti < 2; ti++) {
         const tank = s.tanks[ti];
         if (!tank.alive) continue;
@@ -287,7 +327,6 @@ export class GameEngine {
       }
     }
 
-    // Update particles
     for (let pi = s.particles.length - 1; pi >= 0; pi--) {
       const p = s.particles[pi];
       p.x += p.vx * dt;
@@ -303,10 +342,8 @@ export class GameEngine {
     let x = Math.max(inset + hw, Math.min(this.cw - inset - hw, nx));
     let y = Math.max(inset + hh, Math.min(this.ch - inset - hh, ny));
 
-    // Obstacle collision
     for (const obs of this.state.obstacles) {
       if (x + hw > obs.x && x - hw < obs.x + obs.w && y + hh > obs.y && y - hh < obs.y + obs.h) {
-        // Push out
         const overlapLeft = (x + hw) - obs.x;
         const overlapRight = (obs.x + obs.w) - (x - hw);
         const overlapTop = (y + hh) - obs.y;
@@ -360,11 +397,9 @@ export class GameEngine {
     const ch = this.ch;
     const s = this.state;
 
-    // Clear
     ctx.fillStyle = '#2a2a1e';
     ctx.fillRect(0, 0, cw, ch);
 
-    // Dirt/sand texture pattern
     ctx.fillStyle = '#33301f';
     for (let x = 0; x < cw; x += 40) {
       for (let y = 0; y < ch; y += 40) {
@@ -376,13 +411,11 @@ export class GameEngine {
 
     const inset = s.arenaInset;
 
-    // Arena border
     ctx.strokeStyle = s.suddenDeath ? '#aa3322' : '#555540';
     ctx.lineWidth = 3;
     ctx.strokeRect(inset, inset, cw - inset * 2, ch - inset * 2);
 
     if (s.suddenDeath) {
-      // Danger zone
       ctx.fillStyle = 'rgba(180, 30, 20, 0.08)';
       ctx.fillRect(0, 0, inset, ch);
       ctx.fillRect(cw - inset, 0, inset, ch);
@@ -390,7 +423,6 @@ export class GameEngine {
       ctx.fillRect(0, ch - inset, cw, inset);
     }
 
-    // Obstacles
     for (const obs of s.obstacles) {
       if (obs.type === 'steel') {
         ctx.fillStyle = '#5a5a60';
@@ -401,7 +433,6 @@ export class GameEngine {
       } else {
         ctx.fillStyle = '#8b6914';
         ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-        // Brick lines
         ctx.strokeStyle = '#6b4e0e';
         ctx.lineWidth = 0.5;
         const brickH = obs.h / 3;
@@ -411,7 +442,6 @@ export class GameEngine {
       }
     }
 
-    // Bullets
     for (const b of s.bullets) {
       ctx.beginPath();
       ctx.arc(b.x, b.y, BULLET_RADIUS, 0, Math.PI * 2);
@@ -422,27 +452,22 @@ export class GameEngine {
       ctx.stroke();
     }
 
-    // Tanks
     for (const tank of s.tanks) {
       if (!tank.alive) continue;
       ctx.save();
       ctx.translate(tank.x, tank.y);
       ctx.rotate(tank.angle);
 
-      // Body
       ctx.fillStyle = tank.color;
       ctx.fillRect(-tank.width / 2, -tank.height / 2, tank.width, tank.height);
 
-      // Treads
       ctx.fillStyle = '#222';
       ctx.fillRect(-tank.width / 2, -tank.height / 2 - 2, tank.width, 3);
       ctx.fillRect(-tank.width / 2, tank.height / 2 - 1, tank.width, 3);
 
-      // Turret
       ctx.fillStyle = tank.turretColor;
       ctx.fillRect(0, -3, tank.width / 2 + 6, 6);
 
-      // Turret base
       ctx.beginPath();
       ctx.arc(0, 0, 5, 0, Math.PI * 2);
       ctx.fillStyle = tank.turretColor;
@@ -451,7 +476,6 @@ export class GameEngine {
       ctx.restore();
     }
 
-    // Particles
     for (const p of s.particles) {
       const alpha = p.life / p.maxLife;
       ctx.globalAlpha = alpha;
@@ -460,7 +484,6 @@ export class GameEngine {
     }
     ctx.globalAlpha = 1;
 
-    // Sudden death text
     if (s.suddenDeath) {
       ctx.save();
       ctx.font = 'bold 14px Courier New';
@@ -470,7 +493,6 @@ export class GameEngine {
       ctx.restore();
     }
 
-    // Timer
     ctx.save();
     ctx.font = '12px Courier New';
     ctx.fillStyle = '#888';
@@ -478,7 +500,6 @@ export class GameEngine {
     ctx.fillText(`${Math.floor(s.elapsed)}s`, cw / 2, ch - 8);
     ctx.restore();
 
-    // Round winner text
     if (s.roundWinner !== null) {
       ctx.save();
       ctx.font = 'bold 20px Courier New';
