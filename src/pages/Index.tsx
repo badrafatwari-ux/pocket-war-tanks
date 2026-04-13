@@ -16,6 +16,7 @@ const Index = () => {
   const [p2Score, setP2Score] = useState(0);
   const [matchWinner, setMatchWinner] = useState(0);
   const [roundKey, setRoundKey] = useState(0);
+  const [vsAI, setVsAI] = useState(false);
 
   const save = useCallback((newData: GameData) => {
     setData(newData);
@@ -45,12 +46,12 @@ const Index = () => {
     } else {
       setP1Score(newP1);
       setP2Score(newP2);
-      // Start next round
       setRoundKey((k) => k + 1);
     }
   }, [p1Score, p2Score, winsNeeded, data, save]);
 
-  const startMatch = useCallback(() => {
+  const startMatch = useCallback((ai: boolean) => {
+    setVsAI(ai);
     setP1Score(0);
     setP2Score(0);
     setMatchWinner(0);
@@ -74,7 +75,8 @@ const Index = () => {
     case 'home':
       return (
         <HomeScreen
-          onPlay={startMatch}
+          onPlay={() => startMatch(false)}
+          onPlayAI={() => startMatch(true)}
           onModes={() => setScreen('modes')}
           onStats={() => setScreen('stats')}
           onSettings={() => setScreen('settings')}
@@ -92,6 +94,7 @@ const Index = () => {
           p1Score={p1Score}
           p2Score={p2Score}
           winsNeeded={winsNeeded}
+          vsAI={vsAI}
           onRoundEnd={handleRoundEnd}
         />
       );
@@ -105,7 +108,7 @@ const Index = () => {
           winner={matchWinner}
           p1Score={p1Score}
           p2Score={p2Score}
-          onRematch={startMatch}
+          onRematch={() => startMatch(vsAI)}
           onHome={goHome}
         />
       );
