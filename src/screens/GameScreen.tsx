@@ -9,24 +9,25 @@ interface Props {
   p1Score: number;
   p2Score: number;
   winsNeeded: number;
+  vsAI?: boolean;
   onRoundEnd: (winner: number) => void;
 }
 
 type Dir = 'up' | 'down' | 'left' | 'right' | 'fire';
 
-export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, p1Score, p2Score, winsNeeded, onRoundEnd }) => {
+export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, p1Score, p2Score, winsNeeded, vsAI = false, onRoundEnd }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const engine = new GameEngine(canvas, mode, soundOn, vibrationOn);
+    const engine = new GameEngine(canvas, mode, soundOn, vibrationOn, vsAI);
     engine.onRoundEnd = onRoundEnd;
     engineRef.current = engine;
     engine.start();
     return () => { engine.stop(); };
-  }, [mode, soundOn, vibrationOn, onRoundEnd]);
+  }, [mode, soundOn, vibrationOn, onRoundEnd, vsAI]);
 
   const set = useCallback((player: 0 | 1, key: Dir, val: boolean) => {
     const e = engineRef.current;
@@ -95,7 +96,6 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, p1Scor
       {/* Score Overlay */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 py-1 px-4 rounded-b-lg"
         style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-        {/* P1 Score */}
         <div className="flex items-center gap-2">
           <span style={{ color: '#4a6741', fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 'bold' }}>P1</span>
           <div className="flex gap-1">
@@ -107,14 +107,13 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, p1Scor
         <span style={{ color: '#e8dcc8', fontFamily: "'Courier New', monospace", fontSize: 13, fontWeight: 'bold' }}>
           {p1Score} - {p2Score}
         </span>
-        {/* P2 Score */}
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
             {Array.from({ length: winsNeeded }).map((_, i) => (
               <ScoreDot key={i} filled={i < p2Score} color="#8b7355" />
             ))}
           </div>
-          <span style={{ color: '#8b7355', fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 'bold' }}>P2</span>
+          <span style={{ color: '#8b7355', fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 'bold' }}>{vsAI ? 'CPU' : 'P2'}</span>
         </div>
       </div>
 
@@ -127,11 +126,13 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, p1Scor
       {/* Canvas */}
       <canvas ref={canvasRef} className="block h-full" style={{ touchAction: 'none', flex: '1 1 0%', minWidth: 0 }} />
 
-      {/* P2 Controls */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center p-1" style={{ width: 140 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
-        <DPad player={1} color="#6b5335" />
-      </div>
+      {/* P2 Controls - hidden in AI mode */}
+      {!vsAI && (
+        <div className="flex-shrink-0 flex flex-col items-center justify-center p-1" style={{ width: 140 }}>
+          <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
+          <DPad player={1} color="#6b5335" />
+        </div>
+      )}
     </div>
   );
 };
