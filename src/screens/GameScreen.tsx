@@ -81,19 +81,19 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
   );
 
   return (
-    <div className="w-full h-screen flex items-center" style={{ background: '#1a1a14', touchAction: 'none' }}>
+    <div className="w-full h-screen flex items-center" style={{ background: '#1a1a14', touchAction: 'none', overflow: 'hidden' }}>
       {/* P1 Controls */}
-      <div className="flex flex-col items-center justify-center p-2" style={{ width: '20%', minWidth: 100 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-2" style={{ color: '#4a6741', fontFamily: "'Courier New', monospace" }}>P1</div>
+      <div className="flex-shrink-0 flex flex-col items-center justify-center p-1" style={{ width: 120 }}>
+        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#4a6741', fontFamily: "'Courier New', monospace" }}>P1</div>
         <DPad player={0} color="#3a5431" />
       </div>
 
       {/* Canvas */}
-      <canvas ref={canvasRef} className="flex-1 block h-full" style={{ touchAction: 'none' }} />
+      <canvas ref={canvasRef} className="block h-full" style={{ touchAction: 'none', flex: '1 1 0%', minWidth: 0 }} />
 
       {/* P2 Controls */}
-      <div className="flex flex-col items-center justify-center p-2" style={{ width: '20%', minWidth: 100 }}>
-        <div className="text-[10px] font-bold tracking-widest mb-2" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
+      <div className="flex-shrink-0 flex flex-col items-center justify-center p-1" style={{ width: 120 }}>
+        <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#8b7355', fontFamily: "'Courier New', monospace" }}>P2</div>
         <DPad player={1} color="#6b5335" />
       </div>
     </div>
