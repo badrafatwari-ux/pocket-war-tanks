@@ -89,6 +89,9 @@ const Index = () => {
           mode={data.selectedMode}
           soundOn={data.soundOn}
           vibrationOn={data.vibrationOn}
+          p1Score={p1Score}
+          p2Score={p2Score}
+          winsNeeded={winsNeeded}
           onRoundEnd={handleRoundEnd}
         />
       );

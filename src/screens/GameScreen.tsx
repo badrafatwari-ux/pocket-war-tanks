@@ -6,12 +6,15 @@ interface Props {
   mode: GameMode;
   soundOn: boolean;
   vibrationOn: boolean;
+  p1Score: number;
+  p2Score: number;
+  winsNeeded: number;
   onRoundEnd: (winner: number) => void;
 }
 
 type Dir = 'up' | 'down' | 'left' | 'right' | 'fire';
 
-export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoundEnd }) => {
+export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, p1Score, p2Score, winsNeeded, onRoundEnd }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
@@ -61,9 +64,7 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
 
   const DPad = ({ player, color }: { player: 0 | 1; color: string }) => (
     <div className="flex flex-col items-center gap-1">
-      {/* Up */}
       <button style={dpadBtn(color)} {...bind(player, 'up')} className="active:opacity-60">▲</button>
-      {/* Left / Fire / Right */}
       <div className="flex items-center gap-1">
         <button style={dpadBtn(color)} {...bind(player, 'left')} className="active:opacity-60">◄</button>
         <button
@@ -75,13 +76,48 @@ export const GameScreen: React.FC<Props> = ({ mode, soundOn, vibrationOn, onRoun
         </button>
         <button style={dpadBtn(color)} {...bind(player, 'right')} className="active:opacity-60">►</button>
       </div>
-      {/* Down */}
       <button style={dpadBtn(color)} {...bind(player, 'down')} className="active:opacity-60">▼</button>
     </div>
   );
 
+  const ScoreDot = ({ filled, color }: { filled: boolean; color: string }) => (
+    <div
+      style={{
+        width: 10, height: 10, borderRadius: '50%',
+        background: filled ? color : 'rgba(255,255,255,0.15)',
+        border: `1px solid ${color}`,
+      }}
+    />
+  );
+
   return (
-    <div className="w-full h-screen flex items-center" style={{ background: '#1a1a14', touchAction: 'none', overflow: 'hidden' }}>
+    <div className="w-full h-screen flex items-center relative" style={{ background: '#1a1a14', touchAction: 'none', overflow: 'hidden' }}>
+      {/* Score Overlay */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 py-1 px-4 rounded-b-lg"
+        style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+        {/* P1 Score */}
+        <div className="flex items-center gap-2">
+          <span style={{ color: '#4a6741', fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 'bold' }}>P1</span>
+          <div className="flex gap-1">
+            {Array.from({ length: winsNeeded }).map((_, i) => (
+              <ScoreDot key={i} filled={i < p1Score} color="#4a6741" />
+            ))}
+          </div>
+        </div>
+        <span style={{ color: '#e8dcc8', fontFamily: "'Courier New', monospace", fontSize: 13, fontWeight: 'bold' }}>
+          {p1Score} - {p2Score}
+        </span>
+        {/* P2 Score */}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {Array.from({ length: winsNeeded }).map((_, i) => (
+              <ScoreDot key={i} filled={i < p2Score} color="#8b7355" />
+            ))}
+          </div>
+          <span style={{ color: '#8b7355', fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 'bold' }}>P2</span>
+        </div>
+      </div>
+
       {/* P1 Controls */}
       <div className="flex-shrink-0 flex flex-col items-center justify-center p-1" style={{ width: 140 }}>
         <div className="text-[10px] font-bold tracking-widest mb-1" style={{ color: '#4a6741', fontFamily: "'Courier New', monospace" }}>P1</div>
