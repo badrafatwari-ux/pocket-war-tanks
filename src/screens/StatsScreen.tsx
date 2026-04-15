@@ -13,7 +13,7 @@ export const StatsScreen: React.FC<Props> = ({ data, onReset, onBack }) => {
   const p2Pct = total > 0 ? Math.round((data.player2Wins / total) * 100) : 0;
 
   return (
-    <div className="screen-container">
+    <div className="screen-container py-6">
       <div className="flex flex-col items-center gap-4 w-full max-w-sm px-4">
         <h2
           className="text-2xl font-bold tracking-[0.2em] uppercase mb-2"

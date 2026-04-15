@@ -10,7 +10,7 @@ interface Props {
 
 export const HomeScreen: React.FC<Props> = ({ onPlay, onPlayAI, onModes, onStats, onSettings }) => {
   return (
-    <div className="screen-container relative overflow-hidden">
+    <div className="screen-container relative overflow-hidden py-6">
       {/* Background effects */}
       <div className="absolute inset-0 opacity-10">
         {[...Array(5)].map((_, i) => (
