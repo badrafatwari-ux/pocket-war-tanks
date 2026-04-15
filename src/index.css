@@ -104,6 +104,10 @@
 }
 
 .screen-container {
-  @apply w-full h-screen flex flex-col items-center justify-center;
+  @apply w-full min-h-screen flex flex-col items-center justify-center;
+  min-height: 100dvh;
   background: hsl(var(--background));
+  overflow-y: auto;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
 }

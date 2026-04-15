@@ -10,7 +10,7 @@ interface Props {
 
 export const MatchResultScreen: React.FC<Props> = ({ winner, p1Score, p2Score, onRematch, onHome }) => {
   return (
-    <div className="screen-container">
+    <div className="screen-container py-6">
       <div className="flex flex-col items-center gap-5 text-center">
         <div
           className="text-lg tracking-[0.3em] uppercase"

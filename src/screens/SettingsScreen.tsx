@@ -10,7 +10,7 @@ interface Props {
 
 export const SettingsScreen: React.FC<Props> = ({ data, onToggleSound, onToggleVibration, onBack }) => {
   return (
-    <div className="screen-container">
+    <div className="screen-container py-6">
       <div className="flex flex-col items-center gap-4 w-full max-w-sm px-4">
         <h2
           className="text-2xl font-bold tracking-[0.2em] uppercase mb-2"
